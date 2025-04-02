@@ -1,0 +1,80 @@
+.container {
+  width: 100%;
+  height: 100vh;
+  color: #ffffff;
+}
+
+.main {
+  display: flex;
+  height: 100%;
+  position: relative;
+  background-color: #000000;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.loadingSpinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.infoSection {
+  width: 30%;
+  min-width: 300px;
+  height: 100%;
+  background-color: #111111;
+  overflow-y: auto;
+  border-right: 1px solid #333333;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.modelSection {
+  flex: 1;
+  height: 100%;
+  position: relative;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 768px) {
+  .main {
+    flex-direction: column;
+  }
+  
+  .infoSection {
+    width: 100%;
+    height: 40%;
+    min-height: 300px;
+    border-right: none;
+    border-bottom: 1px solid #333333;
+  }
+  
+  .modelSection {
+    height: 60%;
+  }
+}
