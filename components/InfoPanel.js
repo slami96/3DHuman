@@ -2,7 +2,6 @@ import React from 'react';
 import styles from '../styles/InfoPanel.module.css';
 
 export default function InfoPanel({ selectedPart, onClose }) {
-  // Use a simpler approach that doesn't require handling null separately
   return (
     <div className={styles.infoPanel}>
       <div className={styles.header}>
