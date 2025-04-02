@@ -1,10 +1,10 @@
 import React, { Suspense, useRef, useState, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { useGLTF, OrbitControls, Html, useProgress } from '@react-three/drei';
+import { useGLTF, OrbitControls, Html, useProgress, Sphere } from '@react-three/drei';
 import * as THREE from 'three';
 
 function Loader() {
-  const { progress, item, loaded, total } = useProgress();
+  const { progress, item } = useProgress();
   return (
     <Html center>
       <div style={{
@@ -15,9 +15,6 @@ function Loader() {
         borderRadius: '8px',
         color: 'white'
       }}>
-        <div style={{ marginBottom: '8px' }}>
-          {loaded}/{total} objects loaded
-        </div>
         <div style={{
           width: '100%',
           height: '20px',
@@ -35,21 +32,67 @@ function Loader() {
         <div style={{ marginTop: '8px' }}>
           {progress.toFixed(0)}% loaded
         </div>
-        <div style={{ marginTop: '8px', fontSize: '10px' }}>
-          {item}
-        </div>
       </div>
     </Html>
   );
 }
 
-function Model({ onSelect, onLoaded }) {
+// Define clickable points for different body parts
+const bodyPartPoints = [
+  { id: 'head', position: [0, 1.8, 0.1], label: 'Head' },
+  { id: 'neck', position: [0, 1.4, 0.1], label: 'Neck' },
+  { id: 'shoulders', position: [0.5, 1.2, 0], label: 'Shoulders' },
+  { id: 'chest', position: [0, 0.8, 0.2], label: 'Chest' },
+  { id: 'abdomen', position: [0, 0.3, 0.1], label: 'Abdomen' },
+  { id: 'arms', position: [0.8, 0.8, 0], label: 'Arms' },
+  { id: 'hands', position: [1.0, 0.3, 0], label: 'Hands' },
+  { id: 'legs', position: [0.3, -0.5, 0], label: 'Legs' },
+  { id: 'feet', position: [0.3, -1.8, 0], label: 'Feet' },
+  { id: 'back', position: [0, 0.8, -0.2], label: 'Back' }
+];
+
+function ClickablePoint({ position, label, onSelect, partId, isSelected }) {
+  const [hovered, setHovered] = useState(false);
+  
+  return (
+    <group position={position}>
+      {/* Clickable sphere */}
+      <Sphere 
+        args={[0.06, 16, 16]} 
+        onClick={() => onSelect(partId)}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
+        <meshStandardMaterial 
+          color={isSelected ? '#ff3366' : (hovered ? '#66ccff' : '#3498db')} 
+          emissive={isSelected ? '#ff0000' : (hovered ? '#0088cc' : '#2980b9')}
+          emissiveIntensity={isSelected ? 1 : (hovered ? 0.7 : 0.3)}
+        />
+      </Sphere>
+      
+      {/* Text label */}
+      {(hovered || isSelected) && (
+        <Html position={[0, 0.1, 0]} center>
+          <div style={{
+            background: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            whiteSpace: 'nowrap'
+          }}>
+            {label}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+function Model({ onSelect, onLoaded, selectedPart }) {
   const { scene } = useGLTF('/human_body.glb', undefined, (error) => {
     console.error('Error loading model:', error);
   });
-  const [hovered, setHovered] = useState(null);
-  const [selected, setSelected] = useState(null);
-  const { gl } = useThree();
   
   // Notify parent when model is loaded
   useEffect(() => {
@@ -57,104 +100,55 @@ function Model({ onSelect, onLoaded }) {
       console.log('Model loaded successfully');
       onLoaded && onLoaded();
       
-      // Clone materials for individual coloring
+      // Set a nice blue color for the human model
       scene.traverse((object) => {
         if (object.isMesh) {
           object.material = object.material.clone();
-          // Store original color
-          object.userData.originalColor = object.material.color.clone();
+          object.material.color = new THREE.Color(0x66aaff);
+          object.material.emissive = new THREE.Color(0x3366ff);
+          object.material.emissiveIntensity = 0.2;
+          object.material.transparent = true;
+          object.material.opacity = 0.8;
         }
       });
     }
   }, [scene, onLoaded]);
   
-  // Update material colors when selection changes
-  useEffect(() => {
-    // Reset all materials
-    scene.traverse((object) => {
-      if (object.isMesh && object.userData.originalColor) {
-        object.material.color.copy(object.userData.originalColor);
-        object.material.emissive = new THREE.Color(0x000000);
-      }
-    });
-    
-    // Highlight selected object
-    if (selected) {
-      selected.material.color.set(0x00aaff);
-      selected.material.emissive.set(0x0066ff);
-    }
-    
-    // Highlight hovered object
-    if (hovered && hovered !== selected) {
-      hovered.material.emissive.set(0x333333);
-    }
-  }, [scene, hovered, selected]);
-  
-  // Determine body part based on position
-  const getBodyPart = (position) => {
-    // Get world coordinates
-    console.log('Click position:', position);
-    
-    // Since our model is scaled to 0.3, we'll adjust our coordinates
-    const worldY = position.y / 0.3;
-    console.log('Normalized Y position:', worldY);
-    
-    // Use a different set of thresholds based on our visual inspection
-    if (worldY > 2) return 'head';
-    if (worldY > 1.5) return 'neck';
-    if (worldY > 0.5) return 'shoulders';
-    if (worldY > 0) return 'chest';
-    if (worldY > -1) return 'abdomen';
-    if (worldY > -2) return 'legs';
-    return 'feet';
-  };
-  
   return (
-    <primitive 
-      object={scene} 
-      scale={[0.3, 0.3, 0.3]} 
-      position={[0, -1, 0]}
-      onClick={(e) => {
-        e.stopPropagation();
-        setSelected(e.object);
-        
-        // Get position information
-        console.log('Clicked at world position:', e.point);
-        
-        // Log mesh info for debugging
-        console.log('Clicked on mesh:', e.object.name);
-        console.log('Mesh position:', e.object.position);
-        
-        // Get part based on Y position
-        const part = getBodyPart(e.point);
-        console.log('Detected part:', part);
-        
-        // Pass to parent component
-        onSelect(part);
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(e.object);
-        document.body.style.cursor = 'pointer';
-      }}
-      onPointerOut={() => {
-        setHovered(null);
-        document.body.style.cursor = 'auto';
-      }}
-    />
+    <group>
+      {/* Human model */}
+      <primitive 
+        object={scene} 
+        scale={[0.3, 0.3, 0.3]} 
+        position={[0, -1, 0]}
+      />
+      
+      {/* Clickable points for each body part */}
+      {bodyPartPoints.map((part) => (
+        <ClickablePoint
+          key={part.id}
+          position={part.position}
+          label={part.label}
+          partId={part.id}
+          onSelect={onSelect}
+          isSelected={selectedPart === part.id}
+        />
+      ))}
+    </group>
   );
 }
 
-export default function ModelViewer({ onSelectPart, onLoaded }) {
+export default function ModelViewer({ onSelectPart, onLoaded, selectedPart }) {
   return (
     <div style={{ width: '100%', height: '100%', backgroundColor: '#000000' }}>
-      <Canvas camera={{ position: [0, 0, 15], fov: 50 }} onCreated={() => console.log('Canvas created')}>
+      <Canvas camera={{ position: [0, 0, 5], fov: 50 }} onCreated={() => console.log('Canvas created')}>
         <Suspense fallback={<Loader />}>
           <ambientLight intensity={1.5} />
           <spotLight position={[10, 10, 10]} angle={0.5} intensity={2} />
           <Model 
             onSelect={onSelectPart} 
-            onLoaded={onLoaded} 
+            onLoaded={onLoaded}
+            selectedPart={selectedPart}
           />
           <OrbitControls 
             enablePan={true} 
@@ -162,8 +156,6 @@ export default function ModelViewer({ onSelectPart, onLoaded }) {
             minDistance={3}
             maxDistance={20}
           />
-          {/* Helper to visualize the axes - Red: X, Green: Y, Blue: Z */}
-          <axesHelper args={[5]} />
         </Suspense>
       </Canvas>
     </div>
