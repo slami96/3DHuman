@@ -22,9 +22,8 @@ function Model({ onPartSelect, onLoaded }) {
   const [hovered, setHovered] = useState(null);
   const [clicked, setClicked] = useState(null);
   
-  // You'll need to replace this with your actual model path
-  // For development, we'll use a placeholder path
-  const { scene, nodes, materials } = useGLTF('/models/human_body.glb');
+  // Load the human body GLB file from the public folder
+  const { scene, nodes, materials } = useGLTF('/human_body.glb');
   
   // Map of mesh names to body part identifiers
   // This will need to be adjusted based on your specific model
@@ -49,7 +48,9 @@ function Model({ onPartSelect, onLoaded }) {
   // Called when model is loaded
   useEffect(() => {
     if (scene) {
-      console.log('Model loaded');
+      console.log('Model loaded successfully');
+      console.log('Available nodes:', Object.keys(nodes || {}));
+      console.log('Available materials:', Object.keys(materials || {}));
       onLoaded && onLoaded();
       
       // Clone materials to allow for individual highlighting
