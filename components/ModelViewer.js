@@ -115,12 +115,9 @@ function Model({ onPartSelect, onLoaded }) {
     
     // Highlight clicked object
     if (clicked && clicked.material && clicked.material.color) {
-      // Only apply highlighting if we haven't clicked the canvas background
-      if (clicked.isMesh) {
-        clicked.material.color = new THREE.Color(0x33ccff);
-        clicked.material.emissive = new THREE.Color(0x3366ff);
-        clicked.material.emissiveIntensity = 0.8;
-      }
+      clicked.material.color = new THREE.Color(0x33ccff);
+      clicked.material.emissive = new THREE.Color(0x3366ff);
+      clicked.material.emissiveIntensity = 0.8;
     }
   }, [hovered, clicked, scene]);
   
@@ -129,7 +126,12 @@ function Model({ onPartSelect, onLoaded }) {
       ref={group} 
       dispose={null}
       onClick={(e) => {
+        // Stop event propagation to prevent double-triggering
         e.stopPropagation();
+        
+        // Make sure we have a valid object
+        if (!e.object || !e.object.isMesh) return;
+        
         console.log('Clicked on object:', e.object.name);
         
         // Set the clicked object
@@ -201,17 +203,18 @@ function Model({ onPartSelect, onLoaded }) {
 
 // Main ModelViewer component with canvas setup
 export default function ModelViewer({ onPartSelect, onLoaded }) {
-  // Handle background click to reset selection
-  const handleBackgroundClick = () => {
-    if (onPartSelect) {
+  // Background click handler
+  const handleCanvasClick = (event) => {
+    // Only trigger if we click directly on the canvas (not on a model part)
+    if (event.object === undefined && onPartSelect) {
       onPartSelect(null);
     }
   };
 
   return (
     <Canvas 
-      style={{ backgroundColor: '#000000' }} 
-      onClick={handleBackgroundClick}
+      style={{ backgroundColor: '#000000' }}
+      onClick={handleCanvasClick}
       <Suspense fallback={<Loader />}>
         <ambientLight intensity={1.2} />
         <spotLight position={[10, 10, 10]} angle={0.5} penumbra={1} intensity={2} castShadow />
