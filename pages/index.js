@@ -11,9 +11,10 @@ const ModelViewer = dynamic(() => import('../components/ModelViewer'), {
       justifyContent: 'center',
       alignItems: 'center',
       height: '100%',
-      color: 'white'
+      color: 'white',
+      backgroundColor: '#000'
     }}>
-      Loading viewer...
+      <div>Loading 3D viewer...</div>
     </div>
   )
 });
@@ -39,8 +40,8 @@ export default function Home() {
     setSelectedPart(null);
   };
   
+  // Force loading to complete after timeout
   useEffect(() => {
-    // Add a safety timeout to remove loading screen if it gets stuck
     const timeoutId = setTimeout(() => {
       if (loading) {
         console.log('Forcing loading complete after timeout');
