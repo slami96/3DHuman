@@ -1,37 +1,72 @@
 import React, { Suspense, useRef, useState, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { useGLTF, OrbitControls, Html, useProgress } from '@react-three/drei';
 import * as THREE from 'three';
 
 function Loader() {
-  const { progress } = useProgress();
-  return <Html center>{progress.toFixed(0)}% loaded</Html>;
+  const { progress, item, loaded, total } = useProgress();
+  return (
+    <Html center>
+      <div style={{
+        width: '200px',
+        textAlign: 'center',
+        background: 'rgba(0,0,0,0.8)',
+        padding: '12px',
+        borderRadius: '8px',
+        color: 'white'
+      }}>
+        <div style={{ marginBottom: '8px' }}>
+          {loaded}/{total} objects loaded
+        </div>
+        <div style={{
+          width: '100%',
+          height: '20px',
+          background: '#333',
+          borderRadius: '10px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: `${progress}%`,
+            height: '100%',
+            background: 'linear-gradient(90deg, #3498db, #2ecc71)',
+            transition: 'width 0.3s ease'
+          }} />
+        </div>
+        <div style={{ marginTop: '8px' }}>
+          {progress.toFixed(0)}% loaded
+        </div>
+        <div style={{ marginTop: '8px', fontSize: '10px' }}>
+          {item}
+        </div>
+      </div>
+    </Html>
+  );
 }
 
-function Model({ onSelect }) {
-  const { scene } = useGLTF('/human_body.glb');
+function Model({ onSelect, onLoaded }) {
+  const { scene } = useGLTF('/human_body.glb', undefined, (error) => {
+    console.error('Error loading model:', error);
+  });
   const [hovered, setHovered] = useState(null);
   const [selected, setSelected] = useState(null);
+  const { gl } = useThree();
   
+  // Notify parent when model is loaded
   useEffect(() => {
-    // Clone materials for individual coloring
-    scene.traverse((object) => {
-      if (object.isMesh) {
-        object.material = object.material.clone();
-        // Store original color
-        object.userData.originalColor = object.material.color.clone();
-      }
-    });
-    
-    // Reset colors and apply highlighting
-    return () => {
+    if (scene) {
+      console.log('Model loaded successfully');
+      onLoaded && onLoaded();
+      
+      // Clone materials for individual coloring
       scene.traverse((object) => {
-        if (object.isMesh && object.userData.originalColor) {
-          object.material.color.copy(object.userData.originalColor);
+        if (object.isMesh) {
+          object.material = object.material.clone();
+          // Store original color
+          object.userData.originalColor = object.material.color.clone();
         }
       });
-    };
-  }, [scene]);
+    }
+  }, [scene, onLoaded]);
   
   // Update material colors when selection changes
   useEffect(() => {
@@ -94,14 +129,17 @@ function Model({ onSelect }) {
   );
 }
 
-export default function ModelViewer({ onSelectPart }) {
+export default function ModelViewer({ onSelectPart, onLoaded }) {
   return (
     <div style={{ width: '100%', height: '100%', backgroundColor: '#000000' }}>
-      <Canvas camera={{ position: [0, 0, 15], fov: 50 }}>
+      <Canvas camera={{ position: [0, 0, 15], fov: 50 }} onCreated={() => console.log('Canvas created')}>
         <Suspense fallback={<Loader />}>
           <ambientLight intensity={1.5} />
           <spotLight position={[10, 10, 10]} angle={0.5} intensity={2} />
-          <Model onSelect={onSelectPart} />
+          <Model 
+            onSelect={onSelectPart} 
+            onLoaded={onLoaded} 
+          />
           <OrbitControls 
             enablePan={true} 
             enableZoom={true}
