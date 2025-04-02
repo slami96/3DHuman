@@ -92,14 +92,20 @@ function Model({ onSelect, onLoaded }) {
   
   // Determine body part based on position
   const getBodyPart = (position) => {
-    const y = position.y;
+    // Get world coordinates
+    console.log('Click position:', position);
     
-    if (y > 0.8) return 'head';
-    if (y > 0.6) return 'neck';
-    if (y > 0.2) return 'shoulders';
-    if (y > 0) return 'chest';
-    if (y > -0.3) return 'abdomen';
-    if (y > -0.6) return 'legs';
+    // Since our model is scaled to 0.3, we'll adjust our coordinates
+    const worldY = position.y / 0.3;
+    console.log('Normalized Y position:', worldY);
+    
+    // Use a different set of thresholds based on our visual inspection
+    if (worldY > 2) return 'head';
+    if (worldY > 1.5) return 'neck';
+    if (worldY > 0.5) return 'shoulders';
+    if (worldY > 0) return 'chest';
+    if (worldY > -1) return 'abdomen';
+    if (worldY > -2) return 'legs';
     return 'feet';
   };
   
@@ -112,8 +118,18 @@ function Model({ onSelect, onLoaded }) {
         e.stopPropagation();
         setSelected(e.object);
         
+        // Get position information
+        console.log('Clicked at world position:', e.point);
+        
+        // Log mesh info for debugging
+        console.log('Clicked on mesh:', e.object.name);
+        console.log('Mesh position:', e.object.position);
+        
         // Get part based on Y position
         const part = getBodyPart(e.point);
+        console.log('Detected part:', part);
+        
+        // Pass to parent component
         onSelect(part);
       }}
       onPointerOver={(e) => {
@@ -146,6 +162,8 @@ export default function ModelViewer({ onSelectPart, onLoaded }) {
             minDistance={3}
             maxDistance={20}
           />
+          {/* Helper to visualize the axes - Red: X, Green: Y, Blue: Z */}
+          <axesHelper args={[5]} />
         </Suspense>
       </Canvas>
     </div>
