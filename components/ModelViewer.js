@@ -26,7 +26,6 @@ function Model({ onPartSelect, onLoaded }) {
   const { scene } = useGLTF('/human_body.glb');
   
   // Map of mesh names to body part identifiers
-  // This is updated based on what we can see in the model
   const bodyPartMap = {
     'head': 'head',
     'face': 'head',
@@ -77,18 +76,11 @@ function Model({ onPartSelect, onLoaded }) {
       // Clone materials to allow for individual highlighting
       scene.traverse((object) => {
         if (object.isMesh) {
-          // Make a copy of the material to avoid affecting other parts
           object.material = object.material.clone();
-          
-          // Store original color
           object.userData.originalColor = new THREE.Color(0xffffff);
           if (object.material.color) {
             object.userData.originalColor.copy(object.material.color);
           }
-          
-          // Set all meshes as interactive by default for this model
-          object.userData.isInteractive = true;
-          console.log('Interactive mesh:', object.name);
         }
       });
     }
@@ -97,15 +89,17 @@ function Model({ onPartSelect, onLoaded }) {
   // Handle pointer events
   useEffect(() => {
     // Reset all materials to original color
-    scene && scene.traverse((object) => {
-      if (object.isMesh && object.userData.originalColor) {
-        if (object.material.color) {
-          object.material.color.copy(object.userData.originalColor);
+    if (scene) {
+      scene.traverse((object) => {
+        if (object.isMesh && object.userData.originalColor) {
+          if (object.material && object.material.color) {
+            object.material.color.copy(object.userData.originalColor);
+            object.material.emissive = new THREE.Color(0x000000);
+            object.material.emissiveIntensity = 0;
+          }
         }
-        object.material.emissive = new THREE.Color(0x000000);
-        object.material.emissiveIntensity = 0;
-      }
-    });
+      });
+    }
     
     // Highlight hovered object
     if (hovered && hovered.material) {
@@ -121,80 +115,79 @@ function Model({ onPartSelect, onLoaded }) {
     }
   }, [hovered, clicked, scene]);
   
+  const handleObjectClick = (e) => {
+    e.stopPropagation();
+    console.log('Clicked on object:', e.object.name);
+    
+    // Set the clicked object
+    setClicked(e.object);
+    
+    // Determine which body part was clicked
+    const meshName = e.object.name.toLowerCase();
+    console.log('Trying to match mesh:', meshName);
+    
+    // Try to match with our body part map
+    let partId = null;
+    
+    // Try direct matching first
+    for (const [key, value] of Object.entries(bodyPartMap)) {
+      if (meshName.includes(key.toLowerCase())) {
+        partId = value;
+        console.log(`Direct match: ${meshName} → ${value}`);
+        break;
+      }
+    }
+    
+    // If no direct match, try to infer from position/name
+    if (!partId) {
+      // These are rough estimates based on possible Y-coordinate positions
+      const position = e.point.y;
+      console.log('Click position Y:', position);
+      
+      if (position > 1) {
+        partId = 'head';
+      } else if (position > 0.5) {
+        partId = 'neck';
+      } else if (position > 0) {
+        partId = 'chest';
+      } else if (position > -0.5) {
+        partId = 'abdomen';
+      } else if (position > -1) {
+        partId = 'legs';
+      } else {
+        partId = 'feet';
+      }
+      
+      console.log(`Position-based match: Y=${position} → ${partId}`);
+    }
+    
+    // Call the part select callback
+    if (partId && onPartSelect) {
+      onPartSelect(partId);
+      console.log('Selected part:', partId);
+    } else {
+      onPartSelect('body');
+    }
+  };
+  
+  const handlePointerOver = (e) => {
+    e.stopPropagation();
+    setHovered(e.object);
+    document.body.style.cursor = 'pointer';
+  };
+  
+  const handlePointerOut = () => {
+    setHovered(null);
+    document.body.style.cursor = 'auto';
+  };
+  
   return (
     <group 
       ref={group} 
       dispose={null}
-      onClick={(e) => {
-        // Stop event propagation to prevent double-triggering
-        e.stopPropagation();
-        
-        // Make sure we have a valid object
-        if (!e.object || !e.object.isMesh) return;
-        
-        console.log('Clicked on object:', e.object.name);
-        
-        // Set the clicked object
-        setClicked(e.object);
-        
-        // Determine which body part was clicked
-        const meshName = e.object.name.toLowerCase();
-        console.log('Trying to match mesh:', meshName);
-        
-        // Try to match with our body part map
-        let partId = null;
-        
-        // Try direct matching first
-        for (const [key, value] of Object.entries(bodyPartMap)) {
-          if (meshName.includes(key.toLowerCase())) {
-            partId = value;
-            console.log(`Direct match: ${meshName} → ${value}`);
-            break;
-          }
-        }
-        
-        // If no direct match, try to infer from position/name
-        if (!partId) {
-          // These are rough estimates based on possible Y-coordinate positions
-          // This will need to be adjusted based on your specific model
-          const position = e.point.y;
-          console.log('Click position Y:', position);
-          
-          if (position > 1) {
-            partId = 'head';
-          } else if (position > 0.5) {
-            partId = 'neck';
-          } else if (position > 0) {
-            partId = 'chest';
-          } else if (position > -0.5) {
-            partId = 'abdomen';
-          } else if (position > -1) {
-            partId = 'legs';
-          } else {
-            partId = 'feet';
-          }
-          
-          console.log(`Position-based match: Y=${position} → ${partId}`);
-        }
-        
-        // Call the part select callback
-        if (partId && onPartSelect) {
-          onPartSelect(partId);
-          console.log('Selected part:', partId);
-        } else {
-          // Default fallback
-          onPartSelect('body');
-        }
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(e.object);
-        document.body.style.cursor = 'pointer';
-      }}
-      onPointerOut={(e) => {
-        setHovered(null);
-        document.body.style.cursor = 'auto';
-      }}
+      onClick={handleObjectClick}
+      onPointerOver={handlePointerOver}
+      onPointerOut={handlePointerOut}
     >
       <primitive object={scene} scale={[0.3, 0.3, 0.3]} position={[0, -1, 0]} />
     </group>
@@ -203,18 +196,13 @@ function Model({ onPartSelect, onLoaded }) {
 
 // Main ModelViewer component with canvas setup
 export default function ModelViewer({ onPartSelect, onLoaded }) {
-  // Background click handler
-  const handleCanvasClick = (event) => {
-    // Only trigger if we click directly on the canvas (not on a model part)
-    if (event.object === undefined && onPartSelect) {
-      onPartSelect(null);
-    }
+  const handleCanvasClick = () => {
+    // Reset selection when clicking on empty space
+    onPartSelect && onPartSelect(null);
   };
-
+  
   return (
-    <Canvas 
-      style={{ backgroundColor: '#000000' }}
-      onClick={handleCanvasClick}
+    <Canvas style={{ backgroundColor: '#000000' }} onClick={handleCanvasClick}>
       <Suspense fallback={<Loader />}>
         <ambientLight intensity={1.2} />
         <spotLight position={[10, 10, 10]} angle={0.5} penumbra={1} intensity={2} castShadow />
@@ -229,8 +217,6 @@ export default function ModelViewer({ onPartSelect, onLoaded }) {
           enableRotate={true}
           minDistance={3}
           maxDistance={30}
-          initialPosition={[0, 0, 15]}
-          target={[0, 0, 0]}
         />
       </Suspense>
     </Canvas>
