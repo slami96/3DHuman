@@ -60,12 +60,17 @@ function Model({ onPartSelect, onLoaded }) {
   useEffect(() => {
     if (scene) {
       console.log('Model loaded successfully');
-      // Log the names of all meshes in the model to help with mapping
+      
+      // Log all mesh names to help with mapping
+      let meshNames = [];
       scene.traverse((object) => {
         if (object.isMesh) {
           console.log('Found mesh:', object.name);
+          meshNames.push(object.name);
         }
       });
+      
+      console.log('All mesh names:', meshNames);
       
       onLoaded && onLoaded();
       
@@ -170,16 +175,10 @@ function Model({ onPartSelect, onLoaded }) {
         // Call the part select callback
         if (partId && onPartSelect) {
           onPartSelect(partId);
+          console.log('Selected part:', partId);
         } else {
           // Default fallback
           onPartSelect('body');
-        }
-      }}
-          
-          if (partId && onPartSelect) {
-            console.log('Selected part:', partId);
-            onPartSelect(partId);
-          }
         }
       }}
       onPointerOver={(e) => {
