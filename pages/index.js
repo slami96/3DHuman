@@ -6,6 +6,11 @@ import styles from '../styles/Home.module.css';
 
 // Data for body parts
 const bodyPartsData = {
+  body: {
+    name: "Human Body",
+    description: "The human body is the structure of a human being. It is composed of many different types of cells that together create tissues and subsequently organ systems.",
+    functions: ["Houses all organs and systems", "Provides structure and support", "Enables movement", "Protects vital internal organs"]
+  },
   head: {
     name: "Head",
     description: "The head contains the brain and major sensory organs such as the eyes, nose, ears, and mouth. It's protected by the skull.",
