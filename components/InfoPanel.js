@@ -1,7 +1,8 @@
 import React from 'react';
 import styles from '../styles/InfoPanel.module.css';
 
-export default function InfoPanel({ selectedPart }) {
+export default function InfoPanel({ selectedPart, onClose }) {
+  // Use a simpler approach that doesn't require handling null separately
   return (
     <div className={styles.infoPanel}>
       <div className={styles.header}>
@@ -11,7 +12,16 @@ export default function InfoPanel({ selectedPart }) {
       
       {selectedPart ? (
         <div className={styles.content}>
-          <h2>{selectedPart.name}</h2>
+          <div className={styles.contentHeader}>
+            <h2>{selectedPart.name}</h2>
+            <button 
+              className={styles.closeButton} 
+              onClick={() => onClose && onClose()}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
           <div className={styles.description}>
             <p>{selectedPart.description}</p>
           </div>
