@@ -28,13 +28,15 @@ export default function Home() {
     setLoading(false);
   };
   
-  // Debug function for part selection
-  const handleSelectPart = (partName) => {
-    console.log('Part selected:', partName);
-    setSelectedPart(partName);
-    
-    // Log available body parts
-    console.log('Available body parts:', Object.keys(bodyPartsInfo));
+  // Handle body part selection
+  const handleSelectPart = (partId) => {
+    console.log('Selected body part:', partId);
+    setSelectedPart(partId);
+  };
+  
+  // Clear selection
+  const handleClearSelection = () => {
+    setSelectedPart(null);
   };
   
   useEffect(() => {
@@ -78,14 +80,15 @@ export default function Home() {
       <div style={{ width: '30%', minWidth: '300px' }}>
         <InfoPanel 
           selectedPart={selectedPart} 
-          onClose={() => setSelectedPart(null)} 
+          onClose={handleClearSelection} 
         />
       </div>
       
       <div style={{ flex: 1 }}>
         <ModelViewer 
           onSelectPart={handleSelectPart} 
-          onLoaded={handleModelLoaded} 
+          onLoaded={handleModelLoaded}
+          selectedPart={selectedPart} 
         />
       </div>
     </div>
