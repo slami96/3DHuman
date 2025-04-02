@@ -75,10 +75,24 @@ export default function Home() {
 
   // Handle model click
   const handlePartSelect = (partName) => {
+    // Clear selection if partName is null
     if (partName === null) {
+      console.log('Clearing selection');
       setSelectedPart(null);
-    } else if (bodyPartsData[partName]) {
+      return;
+    }
+    
+    // Log the part name that was selected
+    console.log('Selected part name:', partName);
+    
+    // Check if we have data for this part
+    if (bodyPartsData[partName]) {
+      console.log('Found part data:', bodyPartsData[partName]);
       setSelectedPart(bodyPartsData[partName]);
+    } else {
+      console.warn('No data found for part:', partName);
+      // Fallback to generic body if data not found
+      setSelectedPart(bodyPartsData['body']);
     }
   };
 
