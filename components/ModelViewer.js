@@ -1,5 +1,5 @@
 import { Suspense, useState, useRef, useEffect } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { 
   OrbitControls, 
   useGLTF, 
@@ -23,47 +23,57 @@ function Model({ onPartSelect, onLoaded }) {
   const [clicked, setClicked] = useState(null);
   
   // Load the human body GLB file from the public folder
-  const { scene, nodes, materials } = useGLTF('/human_body.glb');
+  const { scene } = useGLTF('/human_body.glb');
   
   // Map of mesh names to body part identifiers
-  // This will need to be adjusted based on your specific model
+  // This is a simplified map - we'll update it after examining the actual model
   const bodyPartMap = {
     'Head': 'head',
     'Neck': 'neck',
-    'RightShoulder': 'shoulders',
-    'LeftShoulder': 'shoulders',
-    'RightArm': 'arms',
-    'LeftArm': 'arms',
-    'RightHand': 'hands',
-    'LeftHand': 'hands',
+    'Shoulder': 'shoulders',
+    'Arm': 'arms',
+    'Hand': 'hands',
     'Chest': 'chest',
     'Abdomen': 'abdomen',
     'Back': 'back',
-    'RightLeg': 'legs',
-    'LeftLeg': 'legs',
-    'RightFoot': 'feet',
-    'LeftFoot': 'feet'
+    'Leg': 'legs',
+    'Foot': 'feet'
   };
   
   // Called when model is loaded
   useEffect(() => {
     if (scene) {
       console.log('Model loaded successfully');
-      console.log('Available nodes:', Object.keys(nodes || {}));
-      console.log('Available materials:', Object.keys(materials || {}));
+      // Log the names of all meshes in the model to help with mapping
+      scene.traverse((object) => {
+        if (object.isMesh) {
+          console.log('Found mesh:', object.name);
+        }
+      });
+      
       onLoaded && onLoaded();
       
       // Clone materials to allow for individual highlighting
       scene.traverse((object) => {
         if (object.isMesh) {
+          // Make a copy of the material to avoid affecting other parts
           object.material = object.material.clone();
-          // Store original material color
-          object.userData.originalColor = object.material.color.clone();
           
-          // Make object interactive if it's in our body part map
-          const name = object.name;
-          if (Object.keys(bodyPartMap).some(key => name.includes(key))) {
-            object.userData.isInteractive = true;
+          // Store original color
+          object.userData.originalColor = new THREE.Color(0xffffff);
+          if (object.material.color) {
+            object.userData.originalColor.copy(object.material.color);
+          }
+          
+          // Check if this mesh name contains any of our mapped body parts
+          const partFound = Object.keys(bodyPartMap).some(key => 
+            object.name.toLowerCase().includes(key.toLowerCase())
+          );
+          
+          object.userData.isInteractive = partFound;
+          
+          if (partFound) {
+            console.log('Interactive part found:', object.name);
           }
         }
       });
@@ -72,29 +82,26 @@ function Model({ onPartSelect, onLoaded }) {
   
   // Handle pointer events
   useEffect(() => {
-    // Reset all materials
+    // Reset all materials to original color
     scene && scene.traverse((object) => {
       if (object.isMesh && object.userData.originalColor) {
-        object.material.color.copy(object.userData.originalColor);
+        if (object.material.color) {
+          object.material.color.copy(object.userData.originalColor);
+        }
         object.material.emissive = new THREE.Color(0x000000);
       }
     });
     
     // Highlight hovered object
-    if (hovered) {
+    if (hovered && hovered.material) {
       hovered.material.emissive = new THREE.Color(0x333333);
     }
     
     // Highlight clicked object
-    if (clicked) {
+    if (clicked && clicked.material && clicked.material.color) {
       clicked.material.color.set(0x3388ff);
     }
   }, [hovered, clicked, scene]);
-  
-  // Handle raycasting and interactions
-  useFrame((state) => {
-    // Optional: Add any per-frame updates here
-  });
   
   return (
     <group 
@@ -103,7 +110,7 @@ function Model({ onPartSelect, onLoaded }) {
       onClick={(e) => {
         e.stopPropagation();
         // Only process clicks on interactive body parts
-        if (e.object.userData.isInteractive) {
+        if (e.object.userData && e.object.userData.isInteractive) {
           setClicked(e.object);
           
           // Find the body part identifier from the mesh name
@@ -111,26 +118,27 @@ function Model({ onPartSelect, onLoaded }) {
           let partId = null;
           
           for (const [key, value] of Object.entries(bodyPartMap)) {
-            if (meshName.includes(key)) {
+            if (meshName.toLowerCase().includes(key.toLowerCase())) {
               partId = value;
               break;
             }
           }
           
           if (partId && onPartSelect) {
+            console.log('Selected part:', partId);
             onPartSelect(partId);
           }
         }
       }}
       onPointerOver={(e) => {
         e.stopPropagation();
-        if (e.object.userData.isInteractive) {
+        if (e.object.userData && e.object.userData.isInteractive) {
           setHovered(e.object);
           document.body.style.cursor = 'pointer';
         }
       }}
       onPointerOut={(e) => {
-        if (e.object.userData.isInteractive) {
+        if (e.object.userData && e.object.userData.isInteractive) {
           setHovered(null);
           document.body.style.cursor = 'auto';
         }
