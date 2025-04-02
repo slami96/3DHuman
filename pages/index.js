@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import ModelViewer from '../components/ModelViewer';
+import dynamic from 'next/dynamic';
 import InfoPanel from '../components/InfoPanel';
 import styles from '../styles/Home.module.css';
+
+// Dynamically import the ModelViewer component with no SSR
+const ModelViewer = dynamic(
+  () => import('../components/ModelViewer'),
+  { ssr: false }
+);
 
 // Data for body parts
 const bodyPartsData = {
@@ -69,7 +75,11 @@ export default function Home() {
 
   // Handle model click
   const handlePartSelect = (partName) => {
-    setSelectedPart(bodyPartsData[partName]);
+    if (partName === null) {
+      setSelectedPart(null);
+    } else if (bodyPartsData[partName]) {
+      setSelectedPart(bodyPartsData[partName]);
+    }
   };
 
   // Handle model loading status
@@ -94,7 +104,10 @@ export default function Home() {
         )}
         
         <div className={styles.infoSection}>
-          <InfoPanel selectedPart={selectedPart} />
+          <InfoPanel 
+            selectedPart={selectedPart} 
+            onClose={() => setSelectedPart(null)}
+          />
         </div>
         
         <div className={styles.modelSection}>
