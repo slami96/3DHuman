@@ -115,9 +115,12 @@ function Model({ onPartSelect, onLoaded }) {
     
     // Highlight clicked object
     if (clicked && clicked.material && clicked.material.color) {
-      clicked.material.color = new THREE.Color(0x33ccff);
-      clicked.material.emissive = new THREE.Color(0x3366ff);
-      clicked.material.emissiveIntensity = 0.8;
+      // Only apply highlighting if we haven't clicked the canvas background
+      if (clicked.isMesh) {
+        clicked.material.color = new THREE.Color(0x33ccff);
+        clicked.material.emissive = new THREE.Color(0x3366ff);
+        clicked.material.emissiveIntensity = 0.8;
+      }
     }
   }, [hovered, clicked, scene]);
   
@@ -198,8 +201,17 @@ function Model({ onPartSelect, onLoaded }) {
 
 // Main ModelViewer component with canvas setup
 export default function ModelViewer({ onPartSelect, onLoaded }) {
+  // Handle background click to reset selection
+  const handleBackgroundClick = () => {
+    if (onPartSelect) {
+      onPartSelect(null);
+    }
+  };
+
   return (
-    <Canvas style={{ backgroundColor: '#000000' }}>
+    <Canvas 
+      style={{ backgroundColor: '#000000' }} 
+      onClick={handleBackgroundClick}
       <Suspense fallback={<Loader />}>
         <ambientLight intensity={1.2} />
         <spotLight position={[10, 10, 10]} angle={0.5} penumbra={1} intensity={2} castShadow />
