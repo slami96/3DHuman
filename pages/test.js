@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Html, useProgress } from '@react-three/drei';
 
@@ -12,7 +12,18 @@ function Model() {
   const { scene } = useGLTF('/human_body.glb');
   
   // Log information about the loaded model
-  console.log('Model scene loaded:', scene);
+  useEffect(() => {
+    if (scene) {
+      console.log('Model scene loaded successfully');
+      
+      // Log all mesh names to help with mapping
+      scene.traverse((object) => {
+        if (object.isMesh) {
+          console.log('Mesh found:', object.name);
+        }
+      });
+    }
+  }, [scene]);
   
   return <primitive object={scene} scale={[1, 1, 1]} position={[0, -1, 0]} />;
 }
@@ -35,6 +46,7 @@ export default function TestPage() {
         <p>Rotate: Left mouse button</p>
         <p>Pan: Right mouse button</p>
         <p>Zoom: Scroll wheel</p>
+        <p>Check browser console (F12) for mesh names</p>
       </div>
       
       <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
