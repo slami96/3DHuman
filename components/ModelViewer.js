@@ -98,18 +98,21 @@ function Model({ onPartSelect, onLoaded }) {
           object.material.color.copy(object.userData.originalColor);
         }
         object.material.emissive = new THREE.Color(0x000000);
+        object.material.emissiveIntensity = 0;
       }
     });
     
     // Highlight hovered object
     if (hovered && hovered.material) {
-      hovered.material.emissive = new THREE.Color(0x666666);
+      hovered.material.emissive = new THREE.Color(0x33aaff);
+      hovered.material.emissiveIntensity = 0.5;
     }
     
     // Highlight clicked object
     if (clicked && clicked.material && clicked.material.color) {
-      clicked.material.color.set(0x66aaff);
-      clicked.material.emissive = new THREE.Color(0x333333);
+      clicked.material.color = new THREE.Color(0x33ccff);
+      clicked.material.emissive = new THREE.Color(0x3366ff);
+      clicked.material.emissiveIntensity = 0.8;
     }
   }, [hovered, clicked, scene]);
   
@@ -119,33 +122,59 @@ function Model({ onPartSelect, onLoaded }) {
       dispose={null}
       onClick={(e) => {
         e.stopPropagation();
-        // Only process clicks on interactive body parts
-        if (e.object.userData && e.object.userData.isInteractive) {
-          setClicked(e.object);
+        console.log('Clicked on object:', e.object.name);
+        
+        // Set the clicked object
+        setClicked(e.object);
+        
+        // Determine which body part was clicked
+        const meshName = e.object.name.toLowerCase();
+        console.log('Trying to match mesh:', meshName);
+        
+        // Try to match with our body part map
+        let partId = null;
+        
+        // Try direct matching first
+        for (const [key, value] of Object.entries(bodyPartMap)) {
+          if (meshName.includes(key.toLowerCase())) {
+            partId = value;
+            console.log(`Direct match: ${meshName} → ${value}`);
+            break;
+          }
+        }
+        
+        // If no direct match, try to infer from position/name
+        if (!partId) {
+          // These are rough estimates based on possible Y-coordinate positions
+          // This will need to be adjusted based on your specific model
+          const position = e.point.y;
+          console.log('Click position Y:', position);
           
-          // Find the body part identifier from the mesh name
-          const meshName = e.object.name.toLowerCase();
-          let partId = null;
-          
-          for (const [key, value] of Object.entries(bodyPartMap)) {
-            if (meshName.includes(key.toLowerCase())) {
-              partId = value;
-              console.log(`Identified part: ${meshName} as ${value}`);
-              break;
-            }
+          if (position > 1) {
+            partId = 'head';
+          } else if (position > 0.5) {
+            partId = 'neck';
+          } else if (position > 0) {
+            partId = 'chest';
+          } else if (position > -0.5) {
+            partId = 'abdomen';
+          } else if (position > -1) {
+            partId = 'legs';
+          } else {
+            partId = 'feet';
           }
           
-          if (!partId) {
-            // Fallback for meshes without specific naming patterns
-            if (meshName.includes('upper') && meshName.includes('body')) {
-              partId = 'chest';
-            } else if (meshName.includes('lower') && meshName.includes('body')) {
-              partId = 'legs';
-            } else {
-              // Default to a generic part if nothing else matches
-              partId = 'body';
-            }
-          }
+          console.log(`Position-based match: Y=${position} → ${partId}`);
+        }
+        
+        // Call the part select callback
+        if (partId && onPartSelect) {
+          onPartSelect(partId);
+        } else {
+          // Default fallback
+          onPartSelect('body');
+        }
+      }}
           
           if (partId && onPartSelect) {
             console.log('Selected part:', partId);
@@ -155,19 +184,15 @@ function Model({ onPartSelect, onLoaded }) {
       }}
       onPointerOver={(e) => {
         e.stopPropagation();
-        if (e.object.userData && e.object.userData.isInteractive) {
-          setHovered(e.object);
-          document.body.style.cursor = 'pointer';
-        }
+        setHovered(e.object);
+        document.body.style.cursor = 'pointer';
       }}
       onPointerOut={(e) => {
-        if (e.object.userData && e.object.userData.isInteractive) {
-          setHovered(null);
-          document.body.style.cursor = 'auto';
-        }
+        setHovered(null);
+        document.body.style.cursor = 'auto';
       }}
     >
-      <primitive object={scene} scale={[0.8, 0.8, 0.8]} position={[0, -2, 0]} />
+      <primitive object={scene} scale={[0.3, 0.3, 0.3]} position={[0, -1, 0]} />
     </group>
   );
 }
@@ -177,19 +202,20 @@ export default function ModelViewer({ onPartSelect, onLoaded }) {
   return (
     <Canvas style={{ backgroundColor: '#000000' }}>
       <Suspense fallback={<Loader />}>
-        <ambientLight intensity={0.8} />
-        <spotLight position={[10, 10, 10]} angle={0.3} penumbra={1} intensity={1.5} castShadow />
-        <spotLight position={[-10, -10, -10]} angle={0.3} penumbra={1} intensity={0.5} />
-        <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={50} />
+        <ambientLight intensity={1.2} />
+        <spotLight position={[10, 10, 10]} angle={0.5} penumbra={1} intensity={2} castShadow />
+        <spotLight position={[-10, -10, -10]} angle={0.5} penumbra={1} intensity={1} />
+        <hemisphereLight intensity={0.5} />
+        <PerspectiveCamera makeDefault position={[0, 0, 15]} fov={60} />
         <Model onPartSelect={onPartSelect} onLoaded={onLoaded} />
         <Environment preset="city" />
         <OrbitControls 
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={2}
-          maxDistance={15}
-          initialPosition={[0, 0, 10]}
+          minDistance={3}
+          maxDistance={30}
+          initialPosition={[0, 0, 15]}
           target={[0, 0, 0]}
         />
       </Suspense>
