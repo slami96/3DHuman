@@ -39,16 +39,16 @@ function Loader() {
 
 // Define clickable points for different body parts
 const bodyPartPoints = [
-  { id: 'head', position: [0, 2.0, 0], label: 'Head' },
-  { id: 'neck', position: [0, 1.6, 0], label: 'Neck' },
-  { id: 'shoulders', position: [0.6, 1.3, 0], label: 'Shoulders' },
-  { id: 'chest', position: [0, 1.0, 0.1], label: 'Chest' },
-  { id: 'abdomen', position: [0, 0.4, 0.1], label: 'Abdomen' },
-  { id: 'arms', position: [1.0, 0.8, 0], label: 'Arms' },
-  { id: 'hands', position: [1.3, 0.0, 0], label: 'Hands' },
-  { id: 'back', position: [0, 0.8, -0.2], label: 'Back' },
-  { id: 'legs', position: [0.4, -0.7, 0], label: 'Legs' },
-  { id: 'feet', position: [0.4, -1.8, 0], label: 'Feet' }
+  { id: 'head', position: [0, 1.7, 0], label: 'Head' },
+  { id: 'neck', position: [0, 1.2, 0], label: 'Neck' },
+  { id: 'shoulders', position: [1.0, 1.0, 0], label: 'Shoulders' },
+  { id: 'arms', position: [1.5, 0.5, 0], label: 'Arms' },
+  { id: 'hands', position: [2.0, -0.2, 0], label: 'Hands' },
+  { id: 'chest', position: [0, 0.7, 0.1], label: 'Chest' },
+  { id: 'back', position: [0, 0.7, -0.2], label: 'Back' },
+  { id: 'abdomen', position: [0, 0.0, 0.1], label: 'Abdomen' },
+  { id: 'legs', position: [0.5, -0.9, 0], label: 'Legs' },
+  { id: 'feet', position: [0.5, -2.0, 0], label: 'Feet' }
 ];
 
 function ClickablePoint({ position, label, onSelect, partId, isSelected }) {
@@ -58,7 +58,7 @@ function ClickablePoint({ position, label, onSelect, partId, isSelected }) {
     <group position={position}>
       {/* Clickable sphere */}
       <Sphere 
-        args={[0.08, 16, 16]} 
+        args={[0.12, 16, 16]} 
         onClick={() => onSelect(partId)}
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
@@ -66,7 +66,7 @@ function ClickablePoint({ position, label, onSelect, partId, isSelected }) {
         <meshStandardMaterial 
           color={isSelected ? '#ff3366' : (hovered ? '#66ccff' : '#3498db')} 
           emissive={isSelected ? '#ff0000' : (hovered ? '#0088cc' : '#2980b9')}
-          emissiveIntensity={isSelected ? 1.2 : (hovered ? 0.9 : 0.5)}
+          emissiveIntensity={isSelected ? 2 : (hovered ? 1.5 : 1)}
         />
       </Sphere>
       
@@ -121,8 +121,8 @@ function Model({ onSelect, onLoaded, selectedPart }) {
       {/* Human model */}
       <primitive 
         object={scene} 
-        scale={[0.3, 0.3, 0.3]} 
-        position={[0, -1, 0]}
+        scale={[0.25, 0.25, 0.25]} 
+        position={[0, -0.5, 0]}
       />
       
       {/* Clickable points for each body part */}
@@ -143,7 +143,15 @@ function Model({ onSelect, onLoaded, selectedPart }) {
 export default function ModelViewer({ onSelectPart, onLoaded, selectedPart }) {
   return (
     <div style={{ width: '100%', height: '100%', backgroundColor: '#000000' }}>
-      <Canvas camera={{ position: [0, 0, 6], fov: 45 }} onCreated={() => console.log('Canvas created')}>
+      <Canvas 
+        camera={{ position: [0, 0, 9], fov: 40 }} 
+        onCreated={({ camera }) => {
+          console.log('Canvas created');
+          // Set initial camera position
+          camera.position.set(0, 0, 9);
+          camera.lookAt(0, 0, 0);
+        }}
+      >
         <Suspense fallback={<Loader />}>
           <ambientLight intensity={1.5} />
           <spotLight position={[10, 10, 10]} angle={0.5} intensity={2} />
@@ -157,6 +165,7 @@ export default function ModelViewer({ onSelectPart, onLoaded, selectedPart }) {
             enableZoom={true}
             minDistance={3}
             maxDistance={15}
+            target={[0, 0, 0]}
           />
         </Suspense>
       </Canvas>
