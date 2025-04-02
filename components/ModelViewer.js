@@ -37,18 +37,18 @@ function Loader() {
   );
 }
 
-// Define clickable points for different body parts
+// Define clickable points for different body parts - completely revised positions
 const bodyPartPoints = [
-  { id: 'head', position: [0, 1.7, 0], label: 'Head' },
-  { id: 'neck', position: [0, 1.2, 0], label: 'Neck' },
-  { id: 'shoulders', position: [1.0, 1.0, 0], label: 'Shoulders' },
-  { id: 'arms', position: [1.5, 0.5, 0], label: 'Arms' },
-  { id: 'hands', position: [2.0, -0.2, 0], label: 'Hands' },
-  { id: 'chest', position: [0, 0.7, 0.1], label: 'Chest' },
-  { id: 'back', position: [0, 0.7, -0.2], label: 'Back' },
-  { id: 'abdomen', position: [0, 0.0, 0.1], label: 'Abdomen' },
-  { id: 'legs', position: [0.5, -0.9, 0], label: 'Legs' },
-  { id: 'feet', position: [0.5, -2.0, 0], label: 'Feet' }
+  { id: 'head', position: [0, 0.7, 0], label: 'Head' },
+  { id: 'neck', position: [0, 0.4, 0], label: 'Neck' },
+  { id: 'shoulders', position: [0.8, 0.2, 0], label: 'Shoulders' },
+  { id: 'arms', position: [1.1, -0.2, 0], label: 'Arms' },
+  { id: 'hands', position: [1.4, -0.8, 0], label: 'Hands' },
+  { id: 'chest', position: [0, -0.1, 0.1], label: 'Chest' },
+  { id: 'back', position: [0, -0.1, -0.2], label: 'Back' },
+  { id: 'abdomen', position: [0, -0.5, 0.1], label: 'Abdomen' },
+  { id: 'legs', position: [0.3, -1.2, 0], label: 'Legs' },
+  { id: 'feet', position: [0.3, -1.8, 0], label: 'Feet' }
 ];
 
 function ClickablePoint({ position, label, onSelect, partId, isSelected }) {
@@ -121,8 +121,8 @@ function Model({ onSelect, onLoaded, selectedPart }) {
       {/* Human model */}
       <primitive 
         object={scene} 
-        scale={[0.25, 0.25, 0.25]} 
-        position={[0, -0.5, 0]}
+        scale={[0.2, 0.2, 0.2]} 
+        position={[0, 0, 0]}
       />
       
       {/* Clickable points for each body part */}
@@ -144,12 +144,15 @@ export default function ModelViewer({ onSelectPart, onLoaded, selectedPart }) {
   return (
     <div style={{ width: '100%', height: '100%', backgroundColor: '#000000' }}>
       <Canvas 
-        camera={{ position: [0, 0, 9], fov: 40 }} 
-        onCreated={({ camera }) => {
+        camera={{ position: [0, -0.5, 12], fov: 30 }} 
+        onCreated={({ camera, gl }) => {
           console.log('Canvas created');
-          // Set initial camera position
-          camera.position.set(0, 0, 9);
-          camera.lookAt(0, 0, 0);
+          // Set initial camera position for a wide view
+          camera.position.set(0, -0.5, 12);
+          camera.lookAt(0, -0.5, 0);
+          
+          // Set pixel ratio for better rendering quality
+          gl.setPixelRatio(window.devicePixelRatio);
         }}
       >
         <Suspense fallback={<Loader />}>
@@ -163,9 +166,14 @@ export default function ModelViewer({ onSelectPart, onLoaded, selectedPart }) {
           <OrbitControls 
             enablePan={true} 
             enableZoom={true}
-            minDistance={3}
-            maxDistance={15}
-            target={[0, 0, 0]}
+            minDistance={4}
+            maxDistance={20}
+            target={[0, -0.5, 0]}
+            // Start with a zoomed out view
+            defaultDistance={12}
+            // Limit rotation to keep the model oriented properly
+            minPolarAngle={Math.PI/6}
+            maxPolarAngle={Math.PI*5/6}
           />
         </Suspense>
       </Canvas>
