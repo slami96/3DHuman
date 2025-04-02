@@ -62,21 +62,39 @@ function Model({ onPartSelect, onLoaded }) {
       
       // Log all mesh names to help with mapping
       let meshNames = [];
+      let meshPositions = [];
+      
       scene.traverse((object) => {
         if (object.isMesh) {
           console.log('Found mesh:', object.name);
           meshNames.push(object.name);
+          
+          // Store position data for mapping
+          if (object.position) {
+            meshPositions.push({
+              name: object.name,
+              position: object.position.clone()
+            });
+            console.log(`Mesh ${object.name} at position:`, object.position);
+          }
+          
+          // Add event listeners directly to mesh for better click handling
+          object.userData.clickable = true;
         }
       });
       
       console.log('All mesh names:', meshNames);
+      console.log('Mesh positions:', meshPositions);
       
       onLoaded && onLoaded();
       
       // Clone materials to allow for individual highlighting
       scene.traverse((object) => {
         if (object.isMesh) {
+          // Make a copy of the material to avoid affecting other parts
           object.material = object.material.clone();
+          
+          // Store original color
           object.userData.originalColor = new THREE.Color(0xffffff);
           if (object.material.color) {
             object.userData.originalColor.copy(object.material.color);
@@ -107,66 +125,75 @@ function Model({ onPartSelect, onLoaded }) {
       hovered.material.emissiveIntensity = 0.5;
     }
     
-    // Highlight clicked object
-    if (clicked && clicked.material && clicked.material.color) {
-      clicked.material.color = new THREE.Color(0x33ccff);
-      clicked.material.emissive = new THREE.Color(0x3366ff);
-      clicked.material.emissiveIntensity = 0.8;
+    // Highlight clicked object with a much more noticeable effect
+    if (clicked && clicked.material) {
+      if (clicked.material.color) {
+        // Bright blue color for the selected part
+        clicked.material.color = new THREE.Color(0x00aaff);
+      }
+      clicked.material.emissive = new THREE.Color(0x0066ff);
+      clicked.material.emissiveIntensity = 1.5;
+      
+      // Add wireframe for even more visibility
+      clicked.material.wireframe = true;
     }
   }, [hovered, clicked, scene]);
   
   const handleObjectClick = (e) => {
     e.stopPropagation();
+    
+    // Log information for debugging
     console.log('Clicked on object:', e.object.name);
+    console.log('Click position:', e.point);
+    console.log('World position Y:', e.point.y);
     
     // Set the clicked object
     setClicked(e.object);
     
-    // Determine which body part was clicked
-    const meshName = e.object.name.toLowerCase();
-    console.log('Trying to match mesh:', meshName);
+    // Use normalized position for more consistent body part mapping
+    // Scale factor to match our model's size (0.3)
+    const scaledY = e.point.y / 0.3;
+    console.log('Scaled Y position:', scaledY);
     
-    // Try to match with our body part map
-    let partId = null;
+    // Determine which body part was clicked based on Y position
+    let partId;
     
-    // Try direct matching first
-    for (const [key, value] of Object.entries(bodyPartMap)) {
-      if (meshName.includes(key.toLowerCase())) {
-        partId = value;
-        console.log(`Direct match: ${meshName} → ${value}`);
-        break;
-      }
+    // Position-based mapping - more reliable than name matching for this model
+    if (scaledY > 3) {
+      partId = 'head';
+    } else if (scaledY > 2) {
+      partId = 'neck';
+    } else if (scaledY > 1) {
+      partId = 'chest';
+    } else if (scaledY > 0) {
+      partId = 'abdomen';
+    } else if (scaledY > -2) {
+      partId = 'legs';
+    } else {
+      partId = 'feet';
     }
     
-    // If no direct match, try to infer from position/name
+    console.log(`Position-based match: Y=${scaledY} → ${partId}`);
+    
+    // Fallback to name-based matching if needed
     if (!partId) {
-      // These are rough estimates based on possible Y-coordinate positions
-      const position = e.point.y;
-      console.log('Click position Y:', position);
-      
-      if (position > 1) {
-        partId = 'head';
-      } else if (position > 0.5) {
-        partId = 'neck';
-      } else if (position > 0) {
-        partId = 'chest';
-      } else if (position > -0.5) {
-        partId = 'abdomen';
-      } else if (position > -1) {
-        partId = 'legs';
-      } else {
-        partId = 'feet';
+      const meshName = e.object.name.toLowerCase();
+      for (const [key, value] of Object.entries(bodyPartMap)) {
+        if (meshName.includes(key.toLowerCase())) {
+          partId = value;
+          console.log(`Name match: ${meshName} → ${value}`);
+          break;
+        }
       }
-      
-      console.log(`Position-based match: Y=${position} → ${partId}`);
     }
     
-    // Call the part select callback
+    // Call the part select callback with the identified part or default to 'body'
     if (partId && onPartSelect) {
       onPartSelect(partId);
-      console.log('Selected part:', partId);
+      console.log('Selected body part:', partId);
     } else {
       onPartSelect('body');
+      console.log('Selected generic body');
     }
   };
   
@@ -196,13 +223,17 @@ function Model({ onPartSelect, onLoaded }) {
 
 // Main ModelViewer component with canvas setup
 export default function ModelViewer({ onPartSelect, onLoaded }) {
-  const handleCanvasClick = () => {
-    // Reset selection when clicking on empty space
-    onPartSelect && onPartSelect(null);
+  const handleCanvasClick = (event) => {
+    // Only reset selection if clicking on the canvas background (not the model)
+    // Check if we have any intersections - if not, it's a background click
+    if (!event.intersections || event.intersections.length === 0) {
+      console.log('Background clicked - clearing selection');
+      onPartSelect && onPartSelect(null);
+    }
   };
   
   return (
-    <Canvas style={{ backgroundColor: '#000000' }} onClick={handleCanvasClick}>
+    <Canvas style={{ backgroundColor: '#000000' }} onClick={handleCanvasClick}
       <Suspense fallback={<Loader />}>
         <ambientLight intensity={1.2} />
         <spotLight position={[10, 10, 10]} angle={0.5} penumbra={1} intensity={2} castShadow />
