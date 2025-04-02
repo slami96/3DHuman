@@ -28,6 +28,15 @@ export default function Home() {
     setLoading(false);
   };
   
+  // Debug function for part selection
+  const handleSelectPart = (partName) => {
+    console.log('Part selected:', partName);
+    setSelectedPart(partName);
+    
+    // Log available body parts
+    console.log('Available body parts:', Object.keys(bodyPartsInfo));
+  };
+  
   useEffect(() => {
     // Add a safety timeout to remove loading screen if it gets stuck
     const timeoutId = setTimeout(() => {
@@ -75,7 +84,7 @@ export default function Home() {
       
       <div style={{ flex: 1 }}>
         <ModelViewer 
-          onSelectPart={setSelectedPart} 
+          onSelectPart={handleSelectPart} 
           onLoaded={handleModelLoaded} 
         />
       </div>
