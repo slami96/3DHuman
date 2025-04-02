@@ -26,18 +26,34 @@ function Model({ onPartSelect, onLoaded }) {
   const { scene } = useGLTF('/human_body.glb');
   
   // Map of mesh names to body part identifiers
-  // This is a simplified map - we'll update it after examining the actual model
+  // This is updated based on what we can see in the model
   const bodyPartMap = {
-    'Head': 'head',
-    'Neck': 'neck',
-    'Shoulder': 'shoulders',
-    'Arm': 'arms',
-    'Hand': 'hands',
-    'Chest': 'chest',
-    'Abdomen': 'abdomen',
-    'Back': 'back',
-    'Leg': 'legs',
-    'Foot': 'feet'
+    'head': 'head',
+    'face': 'head',
+    'skull': 'head',
+    'neck': 'neck',
+    'shoulder': 'shoulders',
+    'arm': 'arms',
+    'forearm': 'arms',
+    'bicep': 'arms',
+    'tricep': 'arms',
+    'hand': 'hands',
+    'finger': 'hands',
+    'palm': 'hands',
+    'chest': 'chest',
+    'torso': 'chest',
+    'abdomen': 'abdomen',
+    'stomach': 'abdomen',
+    'back': 'back',
+    'spine': 'back',
+    'leg': 'legs',
+    'thigh': 'legs',
+    'calf': 'legs',
+    'shin': 'legs',
+    'knee': 'legs',
+    'foot': 'feet',
+    'toe': 'feet',
+    'ankle': 'feet'
   };
   
   // Called when model is loaded
@@ -65,16 +81,9 @@ function Model({ onPartSelect, onLoaded }) {
             object.userData.originalColor.copy(object.material.color);
           }
           
-          // Check if this mesh name contains any of our mapped body parts
-          const partFound = Object.keys(bodyPartMap).some(key => 
-            object.name.toLowerCase().includes(key.toLowerCase())
-          );
-          
-          object.userData.isInteractive = partFound;
-          
-          if (partFound) {
-            console.log('Interactive part found:', object.name);
-          }
+          // Set all meshes as interactive by default for this model
+          object.userData.isInteractive = true;
+          console.log('Interactive mesh:', object.name);
         }
       });
     }
@@ -94,12 +103,13 @@ function Model({ onPartSelect, onLoaded }) {
     
     // Highlight hovered object
     if (hovered && hovered.material) {
-      hovered.material.emissive = new THREE.Color(0x333333);
+      hovered.material.emissive = new THREE.Color(0x666666);
     }
     
     // Highlight clicked object
     if (clicked && clicked.material && clicked.material.color) {
-      clicked.material.color.set(0x3388ff);
+      clicked.material.color.set(0x66aaff);
+      clicked.material.emissive = new THREE.Color(0x333333);
     }
   }, [hovered, clicked, scene]);
   
@@ -114,13 +124,26 @@ function Model({ onPartSelect, onLoaded }) {
           setClicked(e.object);
           
           // Find the body part identifier from the mesh name
-          const meshName = e.object.name;
+          const meshName = e.object.name.toLowerCase();
           let partId = null;
           
           for (const [key, value] of Object.entries(bodyPartMap)) {
-            if (meshName.toLowerCase().includes(key.toLowerCase())) {
+            if (meshName.includes(key.toLowerCase())) {
               partId = value;
+              console.log(`Identified part: ${meshName} as ${value}`);
               break;
+            }
+          }
+          
+          if (!partId) {
+            // Fallback for meshes without specific naming patterns
+            if (meshName.includes('upper') && meshName.includes('body')) {
+              partId = 'chest';
+            } else if (meshName.includes('lower') && meshName.includes('body')) {
+              partId = 'legs';
+            } else {
+              // Default to a generic part if nothing else matches
+              partId = 'body';
             }
           }
           
@@ -144,7 +167,7 @@ function Model({ onPartSelect, onLoaded }) {
         }
       }}
     >
-      <primitive object={scene} scale={[1, 1, 1]} position={[0, -1, 0]} />
+      <primitive object={scene} scale={[0.8, 0.8, 0.8]} position={[0, -2, 0]} />
     </group>
   );
 }
@@ -154,17 +177,20 @@ export default function ModelViewer({ onPartSelect, onLoaded }) {
   return (
     <Canvas style={{ backgroundColor: '#000000' }}>
       <Suspense fallback={<Loader />}>
-        <ambientLight intensity={0.6} />
-        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-        <PerspectiveCamera makeDefault position={[0, 1, 5]} fov={45} />
+        <ambientLight intensity={0.8} />
+        <spotLight position={[10, 10, 10]} angle={0.3} penumbra={1} intensity={1.5} castShadow />
+        <spotLight position={[-10, -10, -10]} angle={0.3} penumbra={1} intensity={0.5} />
+        <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={50} />
         <Model onPartSelect={onPartSelect} onLoaded={onLoaded} />
         <Environment preset="city" />
         <OrbitControls 
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={3}
-          maxDistance={8}
+          minDistance={2}
+          maxDistance={15}
+          initialPosition={[0, 0, 10]}
+          target={[0, 0, 0]}
         />
       </Suspense>
     </Canvas>
