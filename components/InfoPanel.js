@@ -39,7 +39,12 @@ const bodyPartsInfo = {
 };
 
 export default function InfoPanel({ selectedPart, onClose }) {
+  console.log('InfoPanel received part:', selectedPart);
+  
+  // Get the information for the selected part
   const partInfo = selectedPart ? bodyPartsInfo[selectedPart] : null;
+  
+  console.log('Part info found:', partInfo);
   
   if (!partInfo) {
     return (
