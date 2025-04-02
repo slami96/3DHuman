@@ -1,49 +1,109 @@
 import React from 'react';
-import styles from '../styles/InfoPanel.module.css';
+
+const bodyPartsInfo = {
+  head: {
+    name: "Head",
+    description: "The head contains the brain and major sensory organs.",
+    functions: ["Houses the brain", "Contains sensory organs", "Enables facial expressions"]
+  },
+  neck: {
+    name: "Neck",
+    description: "The neck connects the head to the torso.",
+    functions: ["Supports the head", "Contains the spinal cord", "Houses the trachea and esophagus"]
+  },
+  shoulders: {
+    name: "Shoulders",
+    description: "The shoulders connect the arms to the torso.",
+    functions: ["Enables arm movement", "Supports weight", "Attaches to major muscles"]
+  },
+  chest: {
+    name: "Chest",
+    description: "The chest protects vital organs including the heart and lungs.",
+    functions: ["Protects heart and lungs", "Enables breathing", "Houses major blood vessels"]
+  },
+  abdomen: {
+    name: "Abdomen",
+    description: "The abdomen contains digestive organs protected by muscles.",
+    functions: ["Houses digestive organs", "Provides core stability", "Protects internal organs"]
+  },
+  legs: {
+    name: "Legs",
+    description: "The legs provide mobility and support the body's weight.",
+    functions: ["Body support", "Movement", "Power generation"]
+  },
+  feet: {
+    name: "Feet",
+    description: "The feet provide stability, balance, and mobility.",
+    functions: ["Support body weight", "Absorb impact", "Enable walking"]
+  }
+};
 
 export default function InfoPanel({ selectedPart, onClose }) {
+  const partInfo = selectedPart ? bodyPartsInfo[selectedPart] : null;
+  
+  if (!partInfo) {
+    return (
+      <div style={{
+        padding: '20px',
+        height: '100%',
+        color: '#f0f0f0',
+        backgroundColor: '#111111',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center'
+      }}>
+        <h1 style={{ color: '#3498db' }}>Interactive Human Body</h1>
+        <p>Click on any part of the body to learn more about it.</p>
+      </div>
+    );
+  }
+  
   return (
-    <div className={styles.infoPanel}>
-      <div className={styles.header}>
-        <h1>Interactive Human Body</h1>
-        <p className={styles.subtitle}>Click on a body part to learn more</p>
+    <div style={{
+      padding: '20px',
+      height: '100%',
+      color: '#f0f0f0',
+      backgroundColor: '#111111',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px'
+      }}>
+        <h1 style={{ color: '#3498db' }}>{partInfo.name}</h1>
+        <button 
+          onClick={onClose}
+          style={{
+            backgroundColor: '#2c3e50',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '50%',
+            width: '30px',
+            height: '30px',
+            fontSize: '20px',
+            cursor: 'pointer'
+          }}
+        >
+          ×
+        </button>
       </div>
       
-      {selectedPart ? (
-        <div className={styles.content}>
-          <div className={styles.contentHeader}>
-            <h2>{selectedPart.name}</h2>
-            <button 
-              className={styles.closeButton} 
-              onClick={() => onClose && onClose()}
-              aria-label="Close"
-            >
-              ×
-            </button>
-          </div>
-          <div className={styles.description}>
-            <p>{selectedPart.description}</p>
-          </div>
-          
-          <div className={styles.functions}>
-            <h3>Functions:</h3>
-            <ul>
-              {selectedPart.functions.map((func, index) => (
-                <li key={index}>{func}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      ) : (
-        <div className={styles.placeholder}>
-          <h2>Welcome to the Interactive Human Body Explorer</h2>
-          <p>Rotate the model using your mouse or touch, and click on any body part to learn more about it.</p>
-          <p>This application allows you to explore the external anatomy of the human body in 3D.</p>
-        </div>
-      )}
+      <div style={{ marginBottom: '20px' }}>
+        <p>{partInfo.description}</p>
+      </div>
       
-      <div className={styles.footer}>
-        <p>© {new Date().getFullYear()} Interactive Human Body Explorer</p>
+      <div>
+        <h3 style={{ color: '#2ecc71' }}>Functions:</h3>
+        <ul>
+          {partInfo.functions.map((func, index) => (
+            <li key={index}>{func}</li>
+          ))}
+        </ul>
       </div>
     </div>
   );
