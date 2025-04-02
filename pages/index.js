@@ -1,13 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import InfoPanel from '../components/InfoPanel';
 
 // Import with no SSR to avoid Three.js DOM issues
-const ModelViewer = dynamic(() => import('../components/ModelViewer'), { ssr: false });
+const ModelViewer = dynamic(() => import('../components/ModelViewer'), { 
+  ssr: false,
+  loading: () => (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100%',
+      color: 'white'
+    }}>
+      Loading viewer...
+    </div>
+  )
+});
 
 export default function Home() {
   const [selectedPart, setSelectedPart] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Handle model loading completed
+  const handleModelLoaded = () => {
+    console.log('Model loading complete');
+    setLoading(false);
+  };
+  
+  useEffect(() => {
+    // Add a safety timeout to remove loading screen if it gets stuck
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log('Forcing loading complete after timeout');
+        setLoading(false);
+      }
+    }, 10000); // 10 seconds timeout
+    
+    return () => clearTimeout(timeoutId);
+  }, [loading]);
   
   return (
     <div style={{ 
@@ -31,7 +62,7 @@ export default function Home() {
           zIndex: 100,
           color: 'white'
         }}>
-          <div>Loading 3D model...</div>
+          <div>Loading 3D model... Please wait.</div>
         </div>
       )}
       
@@ -45,7 +76,7 @@ export default function Home() {
       <div style={{ flex: 1 }}>
         <ModelViewer 
           onSelectPart={setSelectedPart} 
-          onLoaded={() => setLoading(false)} 
+          onLoaded={handleModelLoaded} 
         />
       </div>
     </div>
